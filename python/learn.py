@@ -78,7 +78,7 @@ def printModelParams():
     print('\n')
 
 def testUnseen():
-  x_test = np.loadtxt(open('unseen.txt'), delimiter=",", skiprows=1, dtype=np.float64)
+  x_test = np.loadtxt(open('featuresTest.txt'), delimiter=",", skiprows=1, dtype=np.float64)
   # standardize the test
   x_test = std_scale.transform(x_test) 
   y_pred = np.zeros((x_test.shape[0], numlabels), dtype=np.int)
@@ -114,7 +114,7 @@ if __name__=="__main__":
   #printModelParams()
 
   # get predictions for unseen samples
-  #testUnseen()
+  testUnseen()
 
   # close all TF sessions
   for modelObj in modelObjs:

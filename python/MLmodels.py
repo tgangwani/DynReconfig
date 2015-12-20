@@ -14,19 +14,23 @@ class softmax():
     self.importantFeatureLocs = importantFeatureLocs[:]  # copy (unordered) list
     self.inputVecSize = len(importantFeatureLocs)
     self.uniqueVals = list() # list of unique label values
-    self.iterations = 1000 # for stochastic training
-    self.batch_size = 100 # for stochastic training
+    self.iterations = 5000 # for stochastic training
+    self.batch_size = 500 # for stochastic training
     self.x = tf.placeholder(tf.float32, [None, self.inputVecSize])
     self.W = tf.Variable(tf.zeros([self.inputVecSize, labelOpts]))
     self.b = tf.Variable(tf.zeros([labelOpts]))
     self.y = tf.nn.softmax(tf.matmul(self.x, self.W) + self.b)
     self.y_ = tf.placeholder(tf.float32, [None, labelOpts])
+
     self.cross_entropy = -tf.reduce_sum(self.y_*tf.log(self.y))
-    self.train_step = tf.train.GradientDescentOptimizer(0.005).minimize(self.cross_entropy)
+    self.regularization = tf.nn.l2_loss(self.W)
+    self.loss = self.cross_entropy + self.regularization 
+    
+    self.train_step = tf.train.GradientDescentOptimizer(0.001).minimize(self.loss)
     self.sess = tf.Session()
 
     # summary op
-    self.ce_sum = tf.scalar_summary("cross entropy", self.cross_entropy)
+    self.ce_sum = tf.scalar_summary("loss", self.loss)
     #tf.histogram_summary("weights", self.W)
     #tf.histogram_summary("biases", self.b)
     
@@ -70,13 +74,20 @@ class softmax():
       y_sampled = np.take(y_data_oh, sampleIds, axis=0)
 
       # periodic sampling (for stats)
-      if (None and i % 10 == 0):
+      if (i % 10 == 0):
         # cross-entropy measurement on the whole training data
         summary_str = self.sess.run(self.summary_op, feed_dict={self.x: x_data,
           self.y_: y_data_oh})
         self.summary_writer.add_summary(summary_str, i) 
       else:
         self.sess.run(self.train_step, feed_dict={self.x: x_sampled, self.y_: y_sampled})
+
+    # get a measure of how well we did on the training data. COLT tells us that
+    # this is good for generalization
+    correct_prediction = tf.equal(tf.argmax(self.y, 1), tf.argmax(self.y_, 1))
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+    print('Accuracy:', self.sess.run(accuracy, feed_dict={self.x: x_data,
+      self.y_: y_data_oh}))
 
   def getLabelPrediction(self, x_test):
     # feature selection using previously saved important locations
