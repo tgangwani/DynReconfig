@@ -97,6 +97,22 @@ def parallelDetailed(appName, pinballLoc, outputDirBase):
   #print('++Extraction++')
   featureGeneration.extract(goodConfigs, appfeatures, outputDirBase)
 
+# this test function is used to go to each app folder, and insert a file -
+# featuresTest.txt, which contains a single vector for the features
+# corresponding to the base configuration with max resource values
+def test():
+  appList = []
+  for line in open('filelist.txt'):
+    appList.append(str(line.rsplit('\n')[0]))
+
+  for app in appList:
+    globalvars.appName = "app" + str(appList.index(app) + 69)
+    globalvars.pinballLoc = str(app)
+    globalvars.outputDirBase = "/home/gangwan2/workdir1/cs446/outputs/"+globalvars.appName+"/"
+    baseConfig = tuple([96, 64, 256, 4, 512])
+    featureGeneration.extract([baseConfig], [featureNames],
+        globalvars.outputDirBase, True)
+
 def regression():
   appList = []
   # filelist.txt contains path to .address app-phase files (SPEC-Simpoints)
@@ -104,7 +120,7 @@ def regression():
     appList.append(str(line.rsplit('\n')[0]))
 
   for app in appList:
-    globalvars.appName = "app" + str(appList.index(app) + 25)
+    globalvars.appName = "app" + str(appList.index(app) + 69)
     globalvars.pinballLoc = str(app)
     globalvars.outputDirBase = "/home/gangwan2/workdir1/cs446/outputs/"+globalvars.appName+"/"
     sequentialStep()
@@ -112,7 +128,7 @@ def regression():
   print('Starting with parallel detailed run for multiple apps')
 
   for app in appList:
-    globalvars.appName = "app" + str(appList.index(app) + 25)
+    globalvars.appName = "app" + str(appList.index(app) + 69)
     globalvars.pinballLoc = str(app)
     globalvars.outputDirBase = "/home/gangwan2/workdir1/cs446/outputs/"+globalvars.appName+"/"
     p = Process(target=parallelDetailed, args=(globalvars.appName,
@@ -128,3 +144,4 @@ def regression():
 if __name__=="__main__":
   init()
   regression()
+  #test()

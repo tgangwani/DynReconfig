@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 import os, subprocess, sys
-import functools, re, math
+import functools, re, math, glob
 import db, globalvars
+from shutil import copytree
 
 sniperRoot = globalvars.sniperRoot
 rdBinary = globalvars.rdBinary
@@ -65,12 +66,21 @@ def waitOnChildren():
   exit_codes = [p.wait() for p in childProcesses]
   del childProcesses[:]   # reset the list
 
-def extract(permutations, features, outputDirBase):
+def extract(permutations, features, outputDirBase, test=False):
   calculateRD = False
 
   for permutation in permutations:
     outputDir = outputDirBase + "detailed/" + functools.reduce(lambda p,q:str(p)+"_"+str(q),
         permutation)
+
+    if not os.path.exists(outputDir):
+      # the detailed directory should always exist unless we are in test-mode
+      # create one in that case, by copying material from the non-detailed directory
+      assert test==True
+      nonDetailed = outputDirBase + functools.reduce(lambda p,q:str(p)+"_"+str(q), permutation)
+      # copy directory from non-detailed to detailed
+      copytree(nonDetailed, outputDir)
+
     os.chdir(outputDir)
 
     # create feature vector for this permutation
@@ -110,7 +120,14 @@ def extract(permutations, features, outputDirBase):
     featureVec.extend(db.getSqliteData(outputDir))
 
     # we can't put the RD bins values right now since the RD code (cpp) takes time to execute and we want to parallelize it. The exact values are put in before this function returns
-    featureVec.append(outputDir+"/reusedistance.txt")
+    if not test:
+      featureVec.append(outputDir+"/reusedistance.txt")
+    # if we are generating the featureTest.txt for the test-apps of the ML
+    # model, we need to pick RD file from another pre-existing location
+    else:
+      rdLoc = glob.glob(outputDirBase+"detailed/*/reusedistance.txt")[0]
+      featureVec.append(rdLoc)
+
     featureVec.extend([-1 for i in range(binsForRD-1)])
 
     # add the featureVec created for this permutation to overall features list
@@ -121,7 +138,7 @@ def extract(permutations, features, outputDirBase):
     if calculateRD == False:
       calculateRD = True
       # only start the RD calculation if it has not been pre-computed
-      if not os.path.isfile(outputDir+"/reusedistance.txt"):
+      if not os.path.isfile(outputDir+"/reusedistance.txt") and not test:
         print("Starting RD calculation for permutation ", permutation)
         with open(outputDir+"/reusedistance.txt","wt") as out, open(outputDir+"/stderr.txt","wt") as err:
           childProcesses.append(subprocess.Popen(rdCmd, shell=True, stdout=out,
@@ -135,7 +152,8 @@ def extract(permutations, features, outputDirBase):
   fillRDFeatures(features)
   
   # write the features to a file
-  with open(outputDirBase+"features.txt","wt") as out:
+  featureFileName = "features.txt" if test==False else "featuresTest.txt"
+  with open(outputDirBase+featureFileName,"wt") as out:
     for feature in features:
       out.write(str(feature)[1:][:-1])  # leave out the '[' ']'
       out.write('\n')

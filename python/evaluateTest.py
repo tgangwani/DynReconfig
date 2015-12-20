@@ -69,8 +69,9 @@ def getResultsForApp(app, predictedConf):
   # structure of the output is [predictedConf-efficiency baseConf-efficiency bestConf-efficiency]
   m_string = ','.join([str(efficiencyVal[i]) for i in impConfs]) + "\n"
   handle.write(m_string)
-  #m_string = ','.join([str(i) for i in impConfs]) + "\n"
-  #handle.write(m_string)
+  m_string = ','.join([str(i) for i in impConfs]) + "\n"
+  handle.write(m_string)
+  handle.write('\n')
 
 def getResults():
   global handle
